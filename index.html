@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#FEE500" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="카톡커플분석" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <title>카톡 대화 & 커플 분석 뷰어</title>
+  <style>
+    :root {
+      --bg-chat: #BACEE0;
+      --bg-header: rgba(186, 206, 224, 0.94);
+      --bg-panel: #FFFFFF;
+      --bg-sub: #F4F6F8;
+      --text-main: #191919;
+      --text-muted: #5A6572;
+      --bubble-me: #FEE500;
+      --bubble-me-text: #191919;
+      --bubble-other: #FFFFFF;
+      --bubble-other-text: #191919;
+      --date-pill: rgba(0, 0, 0, 0.16);
+      --border-color: rgba(0, 0, 0, 0.08);
+      --kakao-yellow: #FEE500;
+      --kakao-brown: #3C1E1E;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.12);
+    }
+
+    body.dark {
+      --bg-chat: #1E242B;
+      --bg-header: rgba(30, 36, 43, 0.94);
+      --bg-panel: #262D35;
+      --bg-sub: #181D23;
+      --text-main: #F1F3F5;
+      --text-muted: #9AA5B1;
+      --bubble-me: #FEE500;
+      --bubble-me-text: #191919;
+      --bubble-other: #2F3741;
+      --bubble-other-text: #F1F3F5;
+      --date-pill: rgba(255, 255, 255, 0.12);
+      --border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Malgun Gothic", sans-serif;
+      background: var(--bg-sub);
+      color: var(--text-main);
+      overflow: hidden;
+    }
+
+    /* App Shell */
+    .app-container {
+      max-width: 860px;
+      height: 100dvh;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-panel);
+      box-shadow: var(--shadow-md);
+      position: relative;
+    }
+
+    /* Top Bar */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-color);
+      z-index: 20;
+      gap: 8px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .brand-logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: var(--kakao-yellow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-weight: 900;
+      color: var(--kakao-brown);
+      font-size: 16px;
+    }
+    .brand-info { min-width: 0; }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .icon-btn {
+      border: 1px solid var(--border-color);
+      background: var(--bg-sub);
+      color: var(--text-main);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .icon-btn:hover { filter: brightness(0.95); }
+    .icon-btn.primary {
+      background: var(--kakao-yellow);
+      color: var(--kakao-brown);
+      border-color: transparent;
+    }
+
+    /* iOS Direct Touch File Overlay Wrapper */
+    .file-btn-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+    .file-btn-wrap input[type="file"] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 2;
+      font-size: 100px;
+    }
+
+    /* Landing / Upload View */
+    .landing {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+    }
+    .drop-zone {
+      width: 100%;
+      max-width: 520px;
+      border: 2px dashed #9EB2C7;
+      border-radius: 20px;
+      padding: 36px 24px;
+      text-align: center;
+      background: var(--bg-sub);
+      transition: all 0.2s ease;
+    }
+    .drop-zone.dragover {
+      border-color: #3C1E1E;
+      background: rgba(254, 229, 0, 0.18);
+      transform: scale(1.01);
+    }
+    .drop-icon {
+      width: 58px;
+      height: 58px;
+      margin: 0 auto 14px;
+      border-radius: 18px;
+      background: var(--kakao-yellow);
+      color: var(--kakao-brown);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      box-shadow: var(--shadow-sm);
+    }
+    .drop-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .drop-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+    .privacy-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #2B7A4B;
+      background: rgba(43, 122, 75, 0.1);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    .ios-tip {
+      margin-top: 12px;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .recent-section {
+      width: 100%;
+      max-width: 520px;
+    }
+    .recent-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .recent-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .recent-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: var(--bg-sub);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+    }
+    .recent-item:hover { border-color: #9EB2C7; }
+    .recent-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Chat Workspace */
+    .workspace {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .workspace.active { display: flex; }
+
+    /* Sub Control Bar */
+    .subbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: var(--bg-header);
+      border-bottom: 1px solid var(--border-color);
+      backdrop-filter: blur(8px);
+    }
+    .select-box, .search-input {
+      background: var(--bg-panel);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
+      outline: none;
+    }
+    .search-wrap {
+      flex: 1;
+      min-width: 160px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .search-input { width: 100%; }
+    .search-count {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      padding: 0 4px;
+    }
+
+    /* Chat Messages Area */
+    .chat-scroll {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: var(--bg-chat);
+      padding: 14px 16px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      scroll-behavior: smooth;
+    }
+
+    .date-divider {
+      align-self: center;
+      background: var(--date-pill);
+      color: #FFFFFF;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 5px 14px;
+      border-radius: 999px;
+      margin: 12px 0 8px;
+    }
+    .system-msg {
+      align-self: center;
+      background: rgba(0, 0, 0, 0.1);
+      color: var(--text-main);
+      font-size: 11.5px;
+      padding: 4px 12px;
+      border-radius: 8px;
+      margin: 4px 0;
+      text-align: center;
+      max-width: 85%;
+    }
+
+    .msg-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      max-width: 100%;
+    }
+    .msg-row.me {
+      flex-direction: row-reverse;
+    }
+    .msg-row.grouped {
+      margin-top: -2px;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: #FFFFFF;
+      flex-shrink: 0;
+      user-select: none;
+      box-shadow: var(--shadow-sm);
+    }
+    .avatar.hidden {
+      visibility: hidden;
+      height: 0;
+    }
+
+    .msg-body {
+      display: flex;
+      flex-direction: column;
+      max-width: 74%;
+    }
+    .msg-row.me .msg-body {
+      align-items: flex-end;
+    }
+    .sender-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+      opacity: 0.82;
+      margin-bottom: 4px;
+      margin-left: 2px;
+    }
+
+    .bubble-line {
+      display: flex;
+      align-items: flex-end;
+      gap: 5px;
+    }
+    .msg-row.me .bubble-line {
+      flex-direction: row-reverse;
+    }
+
+    .bubble {
+      padding: 8px 12px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.48;
+      word-break: break-word;
+      white-space: pre-wrap;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+    }
+    .msg-row.other .bubble {
+      background: var(--bubble-other);
+      color: var(--bubble-other-text);
+      border-top-left-radius: 4px;
+    }
+    .msg-row.other.grouped .bubble {
+      border-top-left-radius: 14px;
+    }
+    .msg-row.me .bubble {
+      background: var(--bubble-me);
+      color: var(--bubble-me-text);
+      border-top-right-radius: 4px;
+    }
+    .msg-row.me.grouped .bubble {
+      border-top-right-radius: 14px;
+    }
+
+    .bubble a {
+      color: #0B57D0;
+      text-decoration: underline;
+    }
+
+    .msg-time {
+      font-size: 10px;
+      color: var(--text-main);
+      opacity: 0.65;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-bottom: 2px;
+    }
+
+    mark.hl {
+      background: #FF5722;
+      color: #FFFFFF;
+      padding: 0 2px;
+      border-radius: 3px;
+    }
+    .msg-row.active-match .bubble {
+      outline: 2.5px solid #FF5722;
+    }
+
+    /* Floating Scroll Buttons */
+    .float-nav {
+      position: absolute;
+      right: 18px;
+      bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 15;
+    }
+    .float-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--border-color);
+      background: var(--bg-panel);
+      color: var(--text-main);
+      box-shadow: var(--shadow-md);
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    /* Modal & Advanced Analytics Styles */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.52);
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-card {
+      background: var(--bg-panel);
+      color: var(--text-main);
+      width: 100%;
+      max-width: 640px;
+      max-height: 88dvh;
+      overflow-y: auto;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: var(--shadow-md);
+    }
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .modal-title { font-size: 18px; font-weight: 800; }
+    
+    .analysis-section {
+      margin-bottom: 22px;
+    }
+    .analysis-section h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .stat-box {
+      background: var(--bg-sub);
+      padding: 14px 10px;
+      border-radius: 12px;
+      text-align: center;
+      border: 1px solid var(--border-color);
+    }
+    .stat-val { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .stat-lbl { font-size: 11.5px; color: var(--text-muted); }
+
+    .bar-row { margin-bottom: 10px; }
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12.5px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .bar-track {
+      height: 9px;
+      background: var(--bg-sub);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+    .bar-fill {
+      height: 100%;
+      background: var(--kakao-yellow);
+      border-radius: 999px;
+    }
+
+    /* Hourly Heatmap Grid */
+    .hourly-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+    }
+    .hour-cell {
+      background: var(--bg-sub);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 4px;
+      text-align: center;
+    }
+    .hour-time { font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
+    .hour-count { font-size: 13px; font-weight: 700; }
+
+    /* Keyword Tags */
+    .keyword-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .keyword-chip {
+      background: var(--bg-sub);
+      border: 1px solid var(--border-color);
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .keyword-chip span {
+      background: var(--kakao-yellow);
+      color: var(--kakao-brown);
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-size: 10.5px;
+    }
+
+    /* Couple Analysis & Feedback Cards */
+    .couple-card {
+      background: linear-gradient(135deg, rgba(254, 229, 0, 0.15), rgba(186, 206, 224, 0.25));
+      border: 1px solid #FFD400;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .couple-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #3C1E1E;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    body.dark .couple-title { color: #FFD400; }
+    .couple-desc {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-main);
+    }
+    .feedback-box {
+      background: var(--bg-sub);
+      border-left: 4px solid var(--kakao-yellow);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-logo">톡</div>
+        <div class="brand-info">
+          <div class="brand-title" id="roomTitle">카톡 대화 & 커플 분석 뷰어</div>
+          <div class="brand-sub" id="roomSub">오프라인 전용 · 커플 유형 및 대화 피드백 제공</div>
+        </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="icon-btn primary" id="installBtn" style="display:none;">📲 앱 설치</button>
+        <button class="icon-btn primary" id="statsBtn" style="display:none;">❤️ 커플 & 대화 분석 리포트</button>
+        <button class="icon-btn" id="exportHtmlBtn" style="display:none;">💾 HTML 저장</button>
+        <div class="file-btn-wrap" id="topOpenWrap" style="display:none;">
+          <button type="button" class="icon-btn" style="pointer-events:none;">📂 열기</button>
+          <input type="file" id="topFileInput" accept=".txt,text/plain,*/*" />
+        </div>
+        <button class="icon-btn" id="themeBtn" title="다크모드 전환">🌓</button>
+      </div>
+    </header>
+
+    <!-- Landing Upload Screen -->
+    <main class="landing" id="landingView">
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-icon">💌</div>
+        <div class="drop-title">카카오톡 대화 내보내기(.txt) 분석하기</div>
+        <div class="drop-desc">
+          카톡 대화 파일로 <strong>채팅방 뷰어, 커플/관계 유형 분석 및<br />맞춤형 대화 피드백</strong>을 한눈에 확인하세요.
+        </div>
+        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:16px;">
+          <div class="file-btn-wrap">
+            <button type="button" class="icon-btn primary" style="padding:11px 20px; font-size:14px; pointer-events:none;">📄 파일 선택하기</button>
+            <input type="file" id="fileInput" accept=".txt,text/plain,*/*" />
+          </div>
+          <button type="button" class="icon-btn" style="padding:11px 16px; font-size:13px;" id="sampleBtn">✨ 샘플 대화로 분석 체험</button>
+        </div>
+        <div class="privacy-badge">🔒 100% 기기 내 로컬 분석 · 외부 서버 전송 없음</div>
+        <div class="ios-tip">
+          💡 <strong>아이폰 사용자 안내:</strong> 카톡 내부 브라우저가 아닌 <strong>Safari</strong>에서 열면<br />
+          [파일] 앱의 iCloud Drive / 나의 iPhone 폴더에서 .txt 파일을 바로 불러올 수 있습니다.
+        </div>
+      </div>
+
+      <div class="recent-section" id="recentSection" style="display:none;">
+        <div class="recent-header">
+          <span>최근 분석한 대화 (기기 저장됨)</span>
+          <button class="icon-btn" id="clearRecentBtn" style="padding:3px 8px; font-size:11px;">기록 지우기</button>
+        </div>
+        <div class="recent-list" id="recentList"></div>
+      </div>
+    </main>
+
+    <!-- Chat Workspace -->
+    <section class="workspace" id="workspaceView">
+      <div class="subbar">
+        <select class="select-box" id="meSelect" title="'나'로 표시할 참여자 선택"></select>
+        <select class="select-box" id="dateSelect" title="날짜 빠른 이동"></select>
+        <div class="search-wrap">
+          <input type="text" class="search-input" id="searchInput" placeholder="대화 내용 검색..." />
+          <span class="search-count" id="searchCount"></span>
+          <button class="icon-btn" id="prevMatchBtn" style="padding:5px 8px;">▲</button>
+          <button class="icon-btn" id="nextMatchBtn" style="padding:5px 8px;">▼</button>
+        </div>
+      </div>
+
+      <div class="chat-scroll" id="chatScroll"></div>
+
+      <div class="float-nav">
+        <button class="float-btn" id="scrollTopBtn" title="맨 위로">↑</button>
+        <button class="float-btn" id="scrollBottomBtn" title="맨 아래로">↓</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Advanced Analytics & Couple Report Modal -->
+  <div class="modal-backdrop" id="statsModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">❤️ 커플 유형 진단 및 대화 피드백 리포트</div>
+        <button class="icon-btn" id="closeStatsBtn">닫기</button>
+      </div>
+
+      <!-- Couple & Relationship Type Diagnosis -->
+      <div class="analysis-section">
+        <h3>💑 관계 & 대화 유형 진단</h3>
+        <div class="couple-card" id="coupleTypeCard">
+          <div class="couple-title" id="coupleTypeTitle">✨ 분석 중...</div>
+          <div class="couple-desc" id="coupleTypeDesc">대화 패턴을 분석하여 두 분만의 관계 유형을 진단합니다.</div>
+        </div>
+      </div>
+
+      <!-- Conversation Feedback & Tips -->
+      <div class="analysis-section">
+        <h3>💡 맞춤형 대화 피드백 & 꿀팁</h3>
+        <div id="conversationFeedbackList"></div>
+      </div>
+
+      <!-- General Summary -->
+      <div class="analysis-section">
+        <h3>📌 기본 대화 요약</h3>
+        <div class="stat-grid" id="statSummaryGrid"></div>
+      </div>
+
+      <!-- Participant Breakdown -->
+      <div class="analysis-section">
+        <h3>👥 참여자별 메시지 비중</h3>
+        <div id="participantBars"></div>
+      </div>
+
+      <!-- Media & Emoticon Stats -->
+      <div class="analysis-section">
+        <h3>📎 미디어 및 이모티콘 공유 비중</h3>
+        <div class="stat-grid" id="mediaSummaryGrid"></div>
+      </div>
+
+      <!-- Hourly Activity Heatmap -->
+      <div class="analysis-section">
+        <h3>⏰ 시간대별 대화 집중도 (24시간)</h3>
+        <div class="hourly-grid" id="hourlyGrid"></div>
+      </div>
+
+      <!-- Top Keywords -->
+      <div class="analysis-section">
+        <h3>🔑 최다 언급 키워드 TOP 12</h3>
+        <div class="keyword-cloud" id="keywordCloud"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Register Service Worker for PWA App Install
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+
+    let deferredPrompt = null;
+    const installBtn = document.getElementById('installBtn');
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'inline-flex';
+    });
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      installBtn.style.display = 'none';
+    });
+
+    // State
+    let state = {
+      title: '카톡 대화 분석 뷰어',
+      messages: [],
+      participants: [],
+      me: '',
+      searchQuery: '',
+      matches: [],
+      matchIndex: -1
+    };
+
+    const AVATAR_COLORS = ['#5B8FB9', '#E07A5F', '#3D405B', '#81B29A', '#D4A373', '#9B5DE5', '#00BBF9', '#F15BB5'];
+    function getAvatarColor(name) {
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+    }
+
+    // Universal KakaoTalk Parser
+    function parseKakaoTxt(rawText, fileName = '카카오톡 대화') {
+      const text = rawText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const lines = text.split('\n');
+
+      let roomTitle = fileName.replace(/\.txt$/i, '').replace(/^KakaoTalk_Chats?_?/i, '');
+      if (lines[0] && (lines[0].includes('님과 카카오톡 대화') || lines[0].includes('카카오톡 대화'))) {
+        roomTitle = lines[0].replace(/\s*카카오톡 대화.*$/, '').trim() || roomTitle;
+      }
+
+      const messages = [];
+      const participantSet = new Set();
+      let currentDate = '';
+
+      const dateHeaderRe = /^-+\s*(\d{4}[년.]\s*\d{1,2}[월.]\s*\d{1,2}일?(?:\s*[가-힣]+요일)?)\s*-+$/;
+      const mobileDateLineRe = /^(\d{4}년\s*\d{1,2}월\s*\d{1,2}일(?:\s*[가-힣]+요일)?)$/;
+      const dotDateLineRe = /^(\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\.?(?:\s*[가-힣]+요일)?)$/;
+
+      const mobileMsgRe = /^(\d{4}년\s*\d{1,2}월\s*\d{1,2}일)\s*((?:오전|오후)\s*\d{1,2}:\d{2}|\d{1,2}:\d{2}(?:\s*[AP]M)?),\s*(.+?)\s*:\s(.*)$/i;
+      const dotMsgRe = /^(\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\.?)\s*((?:오전|오후)\s*\d{1,2}:\d{2}|\d{1,2}:\d{2}(?:\s*[AP]M)?),\s*(.+?)\s*:\s(.*)$/i;
+      const mobileSysRe = /^(\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\.?)\s*((?:오전|오후)\s*\d{1,2}:\d{2}|\d{1,2}:\d{2}(?:\s*[AP]M)?),\s*(.+)$/i;
+      const pcMsgRe = /^\[(.+?)\]\s*\[((?:오전|오후)\s*\d{1,2}:\d{2}|\d{1,2}:\d{2}(?:\s*[AP]M)?)\]\s(.*)$/i;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmed = line.trim();
+        if (!trimmed) {
+          if (messages.length > 0 && messages[messages.length - 1].type === 'chat') {
+            messages[messages.length - 1].text += '\n';
+          }
+          continue;
+        }
+        if (i <= 2 && (trimmed.startsWith('저장한 날짜') || trimmed.includes('카카오톡 대화'))) continue;
+
+        let m;
+        if ((m = trimmed.match(dateHeaderRe)) || (m = trimmed.match(mobileDateLineRe)) || (m = trimmed.match(dotDateLineRe))) {
+          currentDate = m[1];
+          messages.push({ type: 'date', date: currentDate });
+          continue;
+        }
+
+        if ((m = line.match(mobileMsgRe)) || (m = line.match(dotMsgRe))) {
+          const [, dateStr, timeStr, sender, content] = m;
+          if (dateStr !== currentDate) {
+            currentDate = dateStr;
+            messages.push({ type: 'date', date: currentDate });
+          }
+          participantSet.add(sender);
+          messages.push({
+            type: 'chat',
+            date: currentDate,
+            time: timeStr.trim(),
+            sender,
+            text: content
+          });
+          continue;
+        }
+
+        if ((m = line.match(pcMsgRe))) {
+          const [, sender, timeStr, content] = m;
+          participantSet.add(sender);
+          messages.push({
+            type: 'chat',
+            date: currentDate || '대화 내역',
+            time: timeStr.trim(),
+            sender,
+            text: content
+          });
+          continue;
+        }
+
+        if ((m = line.match(mobileSysRe))) {
+          const [, dateStr, , sysText] = m;
+          if (dateStr !== currentDate) {
+            currentDate = dateStr;
+            messages.push({ type: 'date', date: currentDate });
+          }
+          messages.push({ type: 'system', text: sysText });
+          continue;
+        }
+
+        if (messages.length > 0 && messages[messages.length - 1].type === 'chat') {
+          messages[messages.length - 1].text += '\n' + line;
+        }
+      }
+
+      const participants = Array.from(participantSet);
+      let defaultMe = participants.find(p => p === '회원님' || p === '나') || (participants.length === 2 ? participants[1] : participants[0] || '');
+
+      return { title: roomTitle, messages, participants, me: defaultMe };
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function formatBubbleContent(text, query) {
+      const trimmed = text.trim();
+      const mediaTokens = ['사진', '동영상', '이모티콘', '음성메시지', '파일', '지도', '연락처', '보이스톡 해요', '페이스톡 해요', '삭제된 메시지입니다.'];
+      if (mediaTokens.includes(trimmed)) {
+        const iconMap = { '사진': '🖼️', '동영상': '🎬', '이모티콘': '😊', '음성메시지': '🎙️', '파일': '📎', '지도': '📍', '연락처': '👤', '삭제된 메시지입니다.': '🚫' };
+        return `<span class="media-badge">${iconMap[trimmed] || '💬'} ${escapeHtml(trimmed)}</span>`;
+      }
+
+      let html = escapeHtml(text);
+      html = html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+
+      if (query) {
+        const escapedQ = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(`(${escapedQ})`, 'gi');
+        html = html.replace(re, '<mark class="hl">$1</mark>');
+      }
+      return html;
+    }
+
+    function renderChat() {
+      const container = document.getElementById('chatScroll');
+      container.innerHTML = '';
+      state.matches = [];
+
+      const frag = document.createDocumentFragment();
+      const q = state.searchQuery.trim();
+
+      for (let i = 0; i < state.messages.length; i++) {
+        const msg = state.messages[i];
+        if (msg.type === 'date') {
+          const div = document.createElement('div');
+          div.className = 'date-divider';
+          div.dataset.date = msg.date;
+          div.textContent = msg.date;
+          frag.appendChild(div);
+          continue;
+        }
+        if (msg.type === 'system') {
+          const div = document.createElement('div');
+          div.className = 'system-msg';
+          div.textContent = msg.text;
+          frag.appendChild(div);
+          continue;
+        }
+
+        const prev = state.messages[i - 1];
+        const next = state.messages[i + 1];
+        const isMe = msg.sender === state.me;
+        const isSamePrev = prev && prev.type === 'chat' && prev.sender === msg.sender && prev.time === msg.time && prev.date === msg.date;
+        const isSameNext = next && next.type === 'chat' && next.sender === msg.sender && next.time === msg.time && next.date === msg.date;
+
+        const row = document.createElement('div');
+        row.className = `msg-row ${isMe ? 'me' : 'other'} ${isSamePrev ? 'grouped' : ''}`;
+
+        if (!isMe) {
+          const av = document.createElement('div');
+          av.className = `avatar ${isSamePrev ? 'hidden' : ''}`;
+          if (!isSamePrev) {
+            av.style.background = getAvatarColor(msg.sender);
+            av.textContent = msg.sender.slice(0, 1);
+          }
+          row.appendChild(av);
+        }
+
+        const body = document.createElement('div');
+        body.className = 'msg-body';
+
+        if (!isMe && !isSamePrev) {
+          const nameEl = document.createElement('div');
+          nameEl.className = 'sender-name';
+          nameEl.textContent = msg.sender;
+          body.appendChild(nameEl);
+        }
+
+        const line = document.createElement('div');
+        line.className = 'bubble-line';
+
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.innerHTML = formatBubbleContent(msg.text, q);
+        line.appendChild(bubble);
+
+        if (!isSameNext) {
+          const timeEl = document.createElement('span');
+          timeEl.className = 'msg-time';
+          timeEl.textContent = msg.time;
+          line.appendChild(timeEl);
+        }
+
+        body.appendChild(line);
+        row.appendChild(body);
+        frag.appendChild(row);
+
+        if (q && msg.text.toLowerCase().includes(q.toLowerCase())) {
+          state.matches.push(row);
+        }
+      }
+
+      container.appendChild(frag);
+      updateSearchUI();
+    }
+
+    function updateSearchUI() {
+      const countEl = document.getElementById('searchCount');
+      if (!state.searchQuery.trim()) {
+        countEl.textContent = '';
+        state.matchIndex = -1;
+        return;
+      }
+      if (state.matches.length === 0) {
+        countEl.textContent = '0건';
+        state.matchIndex = -1;
+      } else {
+        if (state.matchIndex < 0 || state.matchIndex >= state.matches.length) state.matchIndex = 0;
+        countEl.textContent = `${state.matchIndex + 1}/${state.matches.length}`;
+        highlightActiveMatch();
+      }
+    }
+
+    function highlightActiveMatch() {
+      state.matches.forEach((el, idx) => {
+        el.classList.toggle('active-match', idx === state.matchIndex);
+      });
+      const target = state.matches[state.matchIndex];
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function loadParsedChat(parsed, saveToRecent = true, rawText = '') {
+      state = { ...state, ...parsed, searchQuery: '', matches: [], matchIndex: -1 };
+
+      document.getElementById('roomTitle').textContent = state.title;
+      const chatCount = state.messages.filter(m => m.type === 'chat').length;
+      document.getElementById('roomSub').textContent = `참여자 ${state.participants.length}명 · 메시지 ${chatCount.toLocaleString()}개`;
+
+      const meSel = document.getElementById('meSelect');
+      meSel.innerHTML = state.participants.map(p =>
+        `<option value="${escapeHtml(p)}" ${p === state.me ? 'selected' : ''}>나: ${escapeHtml(p)}</option>`
+      ).join('');
+
+      const dates = state.messages.filter(m => m.type === 'date').map(m => m.date);
+      const dateSel = document.getElementById('dateSelect');
+      dateSel.innerHTML = `<option value="">📅 날짜 이동 (${dates.length}일)</option>` +
+        dates.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+
+      document.getElementById('landingView').style.display = 'none';
+      document.getElementById('workspaceView').classList.add('active');
+      document.getElementById('statsBtn').style.display = 'inline-flex';
+      document.getElementById('exportHtmlBtn').style.display = 'inline-flex';
+      document.getElementById('topOpenWrap').style.display = 'inline-flex';
+
+      renderChat();
+      const scroller = document.getElementById('chatScroll');
+      scroller.scrollTop = scroller.scrollHeight;
+
+      if (saveToRecent && rawText && rawText.length < 2500000) {
+        saveRecentToLocal(state.title, chatCount, rawText);
+      }
+    }
+
+    function saveRecentToLocal(title, count, rawText) {
+      try {
+        const list = JSON.parse(localStorage.getItem('kakao_recent_chats') || '[]');
+        const filtered = list.filter(item => item.title !== title);
+        filtered.unshift({ title, count, updatedAt: new Date().toLocaleDateString('ko-KR'), rawText });
+        localStorage.setItem('kakao_recent_chats', JSON.stringify(filtered.slice(0, 5)));
+        renderRecentList();
+      } catch (e) {}
+    }
+
+    function renderRecentList() {
+      const list = JSON.parse(localStorage.getItem('kakao_recent_chats') || '[]');
+      const sec = document.getElementById('recentSection');
+      const box = document.getElementById('recentList');
+      if (list.length === 0) {
+        sec.style.display = 'none';
+        return;
+      }
+      sec.style.display = 'block';
+      box.innerHTML = '';
+      list.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'recent-item';
+        row.innerHTML = `
+          <div>
+            <div style="font-weight:700; font-size:14px;">💬 ${escapeHtml(item.title)}</div>
+            <div class="recent-meta">메시지 ${item.count.toLocaleString()}개 · ${item.updatedAt}</div>
+          </div>
+          <span style="font-size:12px; font-weight:700;">열기 →</span>
+        `;
+        row.onclick = () => loadParsedChat(parseKakaoTxt(item.rawText, item.title), false);
+        box.appendChild(row);
+      });
+    }
+
+    // File Handling
+    function handleFile(file, inputEl = null) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const buf = e.target.result;
+          let text = new TextDecoder('utf-8').decode(buf);
+          if (text.includes('\uFFFD')) {
+            text = new TextDecoder('euc-kr').decode(buf);
+          }
+          const parsed = parseKakaoTxt(text, file.name);
+          if (parsed.messages.length === 0) {
+            alert('카카오톡 대화 형식을 찾지 못했습니다.\n카카오톡 [대화 내보내기]로 저장한 .txt 파일인지 확인해주세요.');
+            return;
+          }
+          loadParsedChat(parsed, true, text);
+        } catch (err) {
+          alert('파일 처리 중 오류가 발생했습니다: ' + err.message);
+        } finally {
+          if (inputEl) inputEl.value = '';
+        }
+      };
+      reader.onerror = () => {
+        alert('파일을 읽을 수 없습니다. 아이폰 [파일] 앱에서 iCloud 구름 아이콘을 눌러 기기에 먼저 다운로드한 뒤 다시 선택해주세요.');
+        if (inputEl) inputEl.value = '';
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    const fileInput = document.getElementById('fileInput');
+    const topFileInput = document.getElementById('topFileInput');
+    fileInput.addEventListener('change', (e) => handleFile(e.target.files[0], fileInput));
+    topFileInput.addEventListener('change', (e) => handleFile(e.target.files[0], topFileInput));
+
+    const dropZone = document.getElementById('dropZone');
+    dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+    dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+    dropZone.ondrop = (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      handleFile(e.dataTransfer.files[0]);
+    };
+
+    document.getElementById('meSelect').onchange = (e) => {
+      state.me = e.target.value;
+      renderChat();
+    };
+
+    document.getElementById('dateSelect').onchange = (e) => {
+      const val = e.target.value;
+      if (!val) return;
+      const el = document.querySelector(`.date-divider[data-date="${CSS.escape(val)}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    document.getElementById('searchInput').oninput = (e) => {
+      state.searchQuery = e.target.value;
+      state.matchIndex = 0;
+      renderChat();
+    };
+    document.getElementById('nextMatchBtn').onclick = () => {
+      if (!state.matches.length) return;
+      state.matchIndex = (state.matchIndex + 1) % state.matches.length;
+      updateSearchUI();
+    };
+    document.getElementById('prevMatchBtn').onclick = () => {
+      if (!state.matches.length) return;
+      state.matchIndex = (state.matchIndex - 1 + state.matches.length) % state.matches.length;
+      updateSearchUI();
+    };
+
+    document.getElementById('scrollTopBtn').onclick = () => document.getElementById('chatScroll').scrollTop = 0;
+    document.getElementById('scrollBottomBtn').onclick = () => {
+      const s = document.getElementById('chatScroll');
+      s.scrollTop = s.scrollHeight;
+    };
+
+    document.getElementById('themeBtn').onclick = () => document.body.classList.toggle('dark');
+    document.getElementById('clearRecentBtn').onclick = () => {
+      localStorage.removeItem('kakao_recent_chats');
+      renderRecentList();
+    };
+
+    document.getElementById('exportHtmlBtn').onclick = () => {
+      const clone = document.documentElement.cloneNode(true);
+      const blob = new Blob(['<!DOCTYPE html>\n' + clone.outerHTML], { type: 'text/html;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${state.title}_백업뷰어.html`;
+      a.click();
+    };
+
+    // Advanced Analytics & Couple / Feedback Calculations
+    document.getElementById('statsBtn').onclick = () => {
+      const chats = state.messages.filter(m => m.type === 'chat');
+      const dates = new Set(chats.map(m => m.date));
+      const counts = {};
+      const mediaCounts = { '사진': 0, '이모티콘': 0, '동영상': 0, '링크': 0 };
+      const hourly = Array(24).fill(0);
+      const wordMap = {};
+      const stopwords = new Set(['은', '는', '이', '가', '을', '를', '의', '에', '와', '과', '도', '으로', '로', '에서', '부터', '고', '요', '어', '아', '음', '그', '저', '다', '하', '지', '거', '것', '수', '수', '등', '들']);
+
+      chats.forEach(m => {
+        counts[m.sender] = (counts[m.sender] || 0) + 1;
+        
+        const trimmed = m.text.trim();
+        if (trimmed === '사진') mediaCounts['사진']++;
+        else if (trimmed === '이모티콘') mediaCounts['이모티콘']++;
+        else if (trimmed === '동영상') mediaCounts['동영상']++;
+        if (m.text.includes('http://') || m.text.includes('https://')) mediaCounts['링크']++;
+
+        if (m.time) {
+          let hmMatch = m.time.match(/(\d{1,2}):\d{2}/);
+          if (hmMatch) {
+            let h = parseInt(hmMatch[1], 10);
+            if (m.time.includes('오후') && h < 12) h += 12;
+            if (m.time.includes('오전') && h === 12) h = 0;
+            if (h >= 0 && h < 24) hourly[h]++;
+          }
+        }
+
+        const words = m.text.replace(/[^가-힣a-zA-Z0-9\s]/g, '').split(/\s+/);
+        words.forEach(w => {
+          if (w.length > 1 && !stopwords.has(w)) {
+            wordMap[w] = (wordMap[w] || 0) + 1;
+          }
+        });
+      });
+
+      const sortedParticipants = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      const sortedWords = Object.entries(wordMap).sort((a, b) => b[1] - a[1]).slice(0, 12);
+
+      // 1. Couple Type Diagnosis Logic
+      let coupleTitle = "💬 환상의 핑퐁 티키타카 커플";
+      let coupleDesc = "두 분의 대화 비중이 매우 균형 잡혀 있으며 서로의 이야기에 적극적으로 반응하는 안정적인 관계입니다.";
+      
+      if (sortedParticipants.length >= 2) {
+        const [p1, count1] = sortedParticipants[0];
+        const [p2, count2] = sortedParticipants[1];
+        const totalTwo = count1 + count2;
+        const ratio1 = count1 / Math.max(1, totalTwo);
+
+        if (ratio1 > 0.70) {
+          coupleTitle = `🔥 열정 폭발 주도형 (${p1}) & 차분한 리스너형 (${p2})`;
+          coupleDesc = `${p1}님이 대화를 적극적으로 이끌고, ${p2}님이 든든하게 호응해 주는 환상의 밸런스 조합입니다!`;
+        } else if (ratio1 > 0.60) {
+          coupleTitle = `✨ 달콤한 리드 앤 서포트 커플`;
+          coupleDesc = `한 분이 주로 화제를 던지면 다른 한 분이 다정하게 받아주는 편안한 대화 흐름을 보이고 있어요.`;
+        } else {
+          coupleTitle = `⚡ 50:50 완벽 대칭 티키타카 커플`;
+          coupleDesc = `말수와 드립력이 정확히 반반! 한순간도 지루할 틈 없이 티키타카가 이어지는 역대급 궁합입니다.`;
+        }
+      } else {
+        coupleTitle = `👤 솔로 및 단독 분석 모드`;
+        coupleDesc = `참여자가 1명 이거나 그룹 채팅방입니다. 일상 기록 및 패턴을 확인해보세요.`;
+      }
+
+      document.getElementById('coupleTypeTitle').innerHTML = coupleTitle;
+      document.getElementById('coupleTypeDesc').innerHTML = coupleDesc;
+
+      // 2. Conversation Feedback Generation
+      let feedbackHtml = '';
+      const avgDaily = Math.round(chats.length / Math.max(1, dates.size));
+      if (avgDaily > 50) {
+        feedbackHtml += `<div class="feedback-box">🔥 <strong>수다 폭발 주의보:</strong> 일일 평균 ${avgDaily}개의 메시지가 오갈 정도로 소통이 매우 활발합니다. 서로의 일상을 공유하는 데 진심이시네요!</div>`;
+      } else {
+        feedbackHtml += `<div class="feedback-box">☕ <strong>여유롭고 차분한 대화:</strong> 하루 평균 ${avgDaily}개의 대화로, 바쁜 일상 속에서도 핵심만 쏙쏙 편안하게 나누는 관계입니다.</div>`;
+      }
+
+      if (mediaCounts['이모티콘'] > chats.length * 0.15) {
+        feedbackHtml += `<div class="feedback-box">😊 <strong>이모티콘 애정 표현 풍부:</strong> 텍스트뿐만 아니라 이모티콘을 통한 리액션이 많아 감정 전달이 아주 풍부합니다.</div>`;
+      } else {
+        feedbackHtml += `<div class="feedback-box">💡 <strong>꿀팁 피드백:</strong> 가끔 다채로운 이모티콘이나 사진을 곁들이면 대화의 재미가 두 배가 될 수 있어요!</div>`;
+      }
+
+      document.getElementById('conversationFeedbackList').innerHTML = feedbackHtml;
+
+      // 3. General Summary
+      document.getElementById('statSummaryGrid').innerHTML = `
+        <div class="stat-box"><div class="stat-val">${chats.length.toLocaleString()}개</div><div class="stat-lbl">총 메시지</div></div>
+        <div class="stat-box"><div class="stat-val">${dates.size}일</div><div class="stat-lbl">대화 기간</div></div>
+        <div class="stat-box"><div class="stat-val">${avgDaily}개</div><div class="stat-lbl">일평균 대화</div></div>
+      `;
+
+      // 4. Participant Bars
+      document.getElementById('participantBars').innerHTML = sortedParticipants.map(([name, cnt]) => {
+        const pct = ((cnt / Math.max(1, chats.length)) * 100).toFixed(1);
+        return `
+          <div class="bar-row">
+            <div class="bar-label"><span>${escapeHtml(name)}</span><span>${cnt.toLocaleString()}개 (${pct}%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+          </div>
+        `;
+      }).join('');
+
+      // 5. Media Summary
+      document.getElementById('mediaSummaryGrid').innerHTML = `
+        <div class="stat-box"><div class="stat-val">🖼️ ${mediaCounts['사진'].toLocaleString()}</div><div class="stat-lbl">공유된 사진</div></div>
+        <div class="stat-box"><div class="stat-val">😊 ${mediaCounts['이모티콘'].toLocaleString()}</div><div class="stat-lbl">이모티콘</div></div>
+        <div class="stat-box"><div class="stat-val">🔗 ${mediaCounts['링크'].toLocaleString()}</div><div class="stat-lbl">웹 링크</div></div>
+      `;
+
+      // 6. Hourly Grid
+      const maxHour = Math.max(...hourly, 1);
+      document.getElementById('hourlyGrid').innerHTML = hourly.map((cnt, h) => {
+        const opacity = (cnt / maxHour).toFixed(2);
+        const bg = `rgba(254, 229, 0, ${Math.max(0.1, opacity)})`;
+        return `
+          <div class="hour-cell" style="background:${bg}">
+            <div class="hour-time">${h}시</div>
+            <div class="hour-count">${cnt}</div>
+          </div>
+        `;
+      }).join('');
+
+      // 7. Keywords
+      document.getElementById('keywordCloud').innerHTML = sortedWords.length > 0 
+        ? sortedWords.map(([word, freq]) => `<div class="keyword-chip">${escapeHtml(word)} <span>${freq}회</span></div>`).join('')
+        : '<div style="font-size:13px; color:var(--text-muted);">분석할 텍스트 키워드가 충분하지 않습니다.</div>';
+
+      document.getElementById('statsModal').classList.add('open');
+    };
+
+    document.getElementById('closeStatsBtn').onclick = () => document.getElementById('statsModal').classList.remove('open');
+
+    // Sample Chat
+    document.getElementById('sampleBtn').onclick = (e) => {
+      e.stopPropagation();
+      const sample = `우리들의 달콤한 카카오톡 대화
+저장한 날짜 : 2026년 11월 15일 오후 8:00
+
+--------------- 2026년 11월 14일 토요일 ---------------
+2026년 11월 14일 오전 11:00, 민지 : 자기야 오늘 뭐 먹을까?? 맛있는거 먹고 싶어!
+2026년 11월 14일 오전 11:02, 지훈 : 음 파스타 어때? 아니면 떡볶이?
+2026년 11월 14일 오전 11:03, 민지 : 이모티콘
+2026년 11월 14일 오전 11:03, 민지 : 파스타 콜!! 저번에 그레이스 레스토랑 링크 보낼게
+https://example.com/pasta
+2026년 11월 14일 오전 11:05, 지훈 : 사진
+2026년 11월 14일 오전 11:05, 지훈 : 와 여기 분위기 좋다 바로 예약할게!
+--------------- 2026년 11월 15일 일요일 ---------------
+2026년 11월 15일 오후 2:30, 지훈 : 어제 파스타 진짜 맛있었어 ㅋㅋㅋ
+2026년 11월 15일 오후 2:31, 민지 : 인정 다음에 또 가자!`;
+      loadParsedChat(parseKakaoTxt(sample, '커플_대화_분석샘플'), false);
+    };
+
+    renderRecentList();
+  </script>
+</body>
+</html>
